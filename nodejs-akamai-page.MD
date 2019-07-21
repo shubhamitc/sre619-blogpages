@@ -35,13 +35,14 @@ First thing first, we need to upgrade to Kubernetes version 1.9 to support metri
 ### Deploy adaptor and rolebindings
 GKE requires to use clusterrolebindings to allow adaptor to access cluster resources. In order to do that one need to run below command with clusteradmin privilege. 
 
-```
+```sh
 kubectl create clusterrolebinding cluster-admin-binding \
  --clusterrole cluster-admin --user "$(gcloud config get-value account)"
 ```
 Deploy the adaptor in cluster 
-```
-kubectl create -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter.yaml
+```sh
+kubectl create -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/
+custom-metrics-stackdriver-adapter/deploy/production/adapter.yaml
 ```
 ### Export app metrics to stackdriver
 Final content of deployment file was modified to include side car to push data to stackdriver. We have followed the recommendation to setup this however now Kubernetes also allows us to scaled baesd on third party metrics. Side car is running with Image[image: gcr.io/google-containers/prometheus-to-sd:v0.2.3]. 
@@ -257,7 +258,7 @@ spec:
       targetAverageValue: 13
 ```
 Below is the this is how our SRE monitoring dashboard looks like to understand this better: 
-[![Grafana dashboard](https://github.com/shubhamitc/sre619-blogpages/blob/master/grafana-dashboard.png?raw=true)](https://nodesource.com/products/nsolid)
+[![Grafana dashboard](https://github.com/shubhamitc/sre619-blogpages/blob/master/grafana-dashboard.png?raw=true&size=100x20)](https://sre619.blogspot.com)
 
 # Akamai ...
 With above configrations we have a stable application now. We have applied a few caching in code in order to avoid network calls. Even with all of this our application response time was a little off, so we made sure that content is served with local caching where akamai helps us to do that. We have setup a *GCS bucket* to store js, css and images of every build and we push that to GCS. Akamai is configured to serve static JS from this bucket. 
