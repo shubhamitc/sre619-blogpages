@@ -46,7 +46,7 @@ kubectl create -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stac
 ### Export app metrics to stackdriver
 Final content of deployment file was modified to include side car to push data to stackdriver. We have followed the recommendation to setup this however now Kubernetes also allows us to scaled baesd on third party metrics. Side car is running with Image[image: gcr.io/google-containers/prometheus-to-sd:v0.2.3]. 
 
-```
+```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -221,17 +221,17 @@ spec:
 Below is custom metric with 2 components, 
 * Based on CPU
 * Based on custom metric `queries_per_second`
-* Setup theshhold for scaling where CPU is setup for 30% average usage among pods, custom metric is setup to support 9 request/second among pods of deployment **browser2.0.browser2.201**
+* Setup theshhold for scaling where CPU is setup for 30% average usage among pods, custom metric is setup to support *13 request/second* among pods of deployment **browser2.0.browser2.201**
 
 Highlighting the block for same:
 ```
 - type: Pods
     pods:
       metricName: queries_per_second
-      targetAverageValue: 9
+      targetAverageValue: 13
 ```
 **Complete HPA file**
-```
+```yaml
 apiVersion: "autoscaling/v2beta1"
 kind: "HorizontalPodAutoscaler"
 metadata:
@@ -254,10 +254,10 @@ spec:
   - type: Pods
     pods:
       metricName: queries_per_second
-      targetAverageValue: 9
+      targetAverageValue: 13
 ```
-Below
-
+Below is the this is how our SRE monitoring dashboard looks like to understand this better: 
+[![Grafana dashboard](https://github.com/shubhamitc/sre619-blogpages/blob/master/grafana-dashboard.png?raw=true)](https://nodesource.com/products/nsolid)
 
 # Akamai ...
 With above configrations we have a stable application now. We have applied a few caching in code in order to avoid network calls. Even with all of this our application response time was a little off, so we made sure that content is served with local caching where akamai helps us to do that. We have setup a *GCS bucket* to store js, css and images of every build and we push that to GCS. Akamai is configured to serve static JS from this bucket. 
