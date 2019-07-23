@@ -64,7 +64,7 @@ Before i describe them in detail i would like to state a few factors to provide 
 2. Serviec discovery 
 3. Circuit breaker
 4. Mapping services across clusters 
-5. Regional services and their handling
+5. Regional services and their handling (AKA deployment considerations)
 
 ## 1. Language and framework
 In order to have granular governanace we devided clusters to different project, this scenario cuts both ways, at one hand it solves some of governanace on other hand it creates a lot of problems for cluster creating and provisioning. Just for fun imagine these clusters running across regions... 
@@ -76,8 +76,40 @@ As i described before we are using Consul for service discovery, while we migrat
 First challenge was super micro services:
 Consul based Service discovery was fine but we wanted our microservices to become more micros, by that I mean that these libraries should be taken out of codebase. We selected Istio based on our GCP roadmap and very soon reliased that Consul based service discovery will not work for us as Istio requires `Host headers` to identify a service.
 
-Second challenge Istio with different clusters
-> TODO
+Second challenge Istio with different clusters:
+While we were running Consul on VMs, we were able to find services across Kubernetes clusters. Once we moved to Istio we were forced to used native service discovery. Now please be aware that Kubernetes native discovery that is service type ClusterIP is only routable within the cluster. So if you want to access services across you need to expose your services probably using LoadBalancers. This exercise was adding 40MS delay to our calls since they have to go to Public Ips now. 
+To add to this Kubernetes with Istio now supports Single control plane architecture, which is control plane may reside at one place while dataplane running on different cluster will talk to same control plane. Such setting allows you to have single discovery of services. 
+[![Istio Planes](https://istio.io/docs/concepts/multicluster-deployments/multicluster-with-vpn.svg?raw=true&size=100x20)](https://istio.io/docs/concepts/multicluster-deployments/).
 
+Final architecture with Shared VPC and multiple projects will look something like:
+[![Istio Planes](https://github.com/shubhamitc/sre619-blogpages/blob/master/istio-doc/network-model2.png?raw=true&size=100x20)](https://sre619.blogspot.com).
+Where Flow showing Nginx is our current flow while Envoy show new traffic flow using Istio. 
 
+## 3. Circuit breaker 
+There is some difference between the way circuit breaker is implimented in both Istio and Hystrix. While Hystrix is completly instance specific and languge native , Istio is an infrastructure piece thus focus is moved towards governance as well. To explain this, Istio moves functionality for circuit breaking to server side while keeping the functionality of timeout to client side. This allows producer to control how many concurrent request it can handle and when to open circuit. 
+* How to open circuit for same host from 2 consumers having different SLAs 
+* How to provide context back to caller in terms for circuit break. Since Istio is not inside code, context can not be passed to application
+* It is difficult to rewrite the logic of fallback, compared to Hystrix 
+
+While there are 2 possible solutions to first problem, others are difficult to solve:
+1. Have alias service name for producer
+2. Pass context aware headers and create different virtual services based on the header match with different timeouts
+
+## 4. Mapping services across clusters 
+Once you setup Istio with above logic you need to follow below which is suggested by Istio docs:
+`Kubernetes resolves DNS on a cluster basis. Because the DNS resolution is tied to the cluster, you must define the service object in every cluster where a client runs, regardless of the location of the service’s endpoints. To ensure this is the case, duplicate the service object to every cluster using kubectl. Duplication ensures Kubernetes can resolve the service name in any cluster. Since the service objects are defined in a namespace, you must define the namespace if it doesn’t exist, and include it in the service definitions in all clusters.`
+So one needs to make sure that service definations and namespaces are replicated.
+
+## 5. Regional services and their handling (AKA deployment considerations)
+Istio document suggests below:
+`The previous procedures provide a simple and step-by-step guide to deploy a multi cluster environment. A production environment might require additional steps or more complex deployment options. The procedures gather the endpoint IPs of the Istio services and use them to invoke Helm. This process creates Istio services on the remote clusters. As part of creating those services and endpoints in the remote cluster, Kubernetes adds DNS entries to the kube-dns configuration object.
+This allows the kube-dns configuration object in the remote clusters to resolve the Istio service names for all Envoy sidecars in those remote clusters. Since Kubernetes pods don’t have stable IPs, restart of any Istio service pod in the control plane cluster causes its endpoint to change. Therefore, any connection made from remote clusters to that endpoint are broken. This behavior is documented in Istio issue #4822
+To either avoid or resolve this scenario several options are available. This section provides a high level overview of these options:
+`
+1. Update the DNS entries - You are suppose to re-run remote deploy. Which is not fisible in my case
+2. Use a load balancer service type - Internal loadbalancers are only available in same region. To explain this you can not deploy the control plane to work for all the regions. Public LBs are too great a risk for security. From Google docs: `Internal TCP/UDP Load Balancing makes your cluster's services accessible to applications outside of your cluster that use the same VPC network and are located in the same GCP region. For example, suppose you have a cluster in the us-west1 region and you need to make one of its services accessible to Compute Engine VM instances running in that region on the same VPC network.`
+3. Expose the Istio services via a gateway - Same issue as Public LB
+### Possible Solutions
+1. You need to run 1 control plane per region to handle security
+2. You need to do step-1 because NEG (Network Endpoint Groups) and Ingress controllers should have regional mapping in Backend service to balance traffic across regions with near instance ability (Regional failover)
 
