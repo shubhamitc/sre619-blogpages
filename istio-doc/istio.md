@@ -10,7 +10,7 @@ Since ISTIO is very new to us we are selectivity not investing much on Mutual TL
 - SRE team
 - Smart alert and monitoring specialists 
 
-# Some pre-reading reference and credits
+# Credits
 - [Envoy XDS APIs](https://blog.envoyproxy.io/the-universal-data-plane-api-d15cec7a) 
 - [Control plane APIs]( https://www.envoyproxy.io/docs/envoy/latest/api-v2/api)
 
@@ -53,4 +53,18 @@ Before i describe them in detail i would like to state a few factors to provide 
 * Most of the access to the project is maintained by the same team. However SRE team will setup another project to configure storage services like RabbitMQ, Redis, Elasticsearch, etc... 
 * All of them will be connected using Shared VPC from host project
 * This setup allows us to transition deployments to Development teams and 
+
+# Challenges
+1. Language and framework
+2. Serviec discovery 
+3. Circuit breaker
+4. Mapping services across clusters 
+5. Regional services and their handling
+
+## 1. Language and framework
+In order to have granular governanace we devided clusters to different project, this scenario cuts both ways, at one hand it solves some of governanace issue on other hand it creates a lot of problems for service discovery across clusters. For fun imagine these clusters running across regions... 
+Out first attempt was to setup application with Netflix stack which was awesome for a while. We were running springboot 1.xx and created our spring template so all the applications have Hystrix, consul and ribbon for service discovery and prometheus for monitoring. Good right? just one teeny tiny problem, It started to take weeks in order to get the last mile certified for production while incorporating all these changes and getting them verified by teams. To add to this somebody came up and said, "you know what Spring released versoin 2.0 !". Now somebody has to upgrade all the services, bring them to 2.0 standards and create template for everything all over again. FYI default prometheus metrics are chagned in Spring 2.0, so good luck updating all the grafana dashboards.
+
+
+
 
