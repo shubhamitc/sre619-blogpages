@@ -4,11 +4,17 @@ Since istio is designed to bridge the gap for both development teams and SRE, it
 
 Since ISTIO is very new to us we are selectivity not investing much on Mutual TLS(mtls). `One feature i would like to stress is the istio's ability towards observations.`
 
-# Audience
-- Application and system architects
-- Development teams 
-- SRE team
-- Smart alert and monitoring specialists 
+# Tech stack 
+For some people it makes a lot of sense to know the relevance thus here you go
+* Springboot
+* GKE(*G*oogle *K*ubernetes *E*ngine)
+* GCP (*G*oogle *C*loud *P*latform)
+* Something browed from Netflix
+  * Hystrix
+  * Ribbon 
+* Consul for service discovery
+* Prometheus + NewRelic for monitoring
+* Storage: supported DBs like CloudSql, Cache like Redis and Hazelcast, MQ like RabbitMQ and Cloud Pub/Sub
 
 # Credits
 - [Envoy XDS APIs](https://blog.envoyproxy.io/the-universal-data-plane-api-d15cec7a) 
@@ -62,9 +68,17 @@ Before i describe them in detail i would like to state a few factors to provide 
 5. Regional services and their handling
 
 ## 1. Language and framework
-In order to have granular governanace we devided clusters to different project, this scenario cuts both ways, at one hand it solves some of governanace issue on other hand it creates a lot of problems for service discovery across clusters. For fun imagine these clusters running across regions... 
+In order to have granular governanace we devided clusters to different project, this scenario cuts both ways, at one hand it solves some of governanace on other hand it creates a lot of problems for cluster creating and provisioning. Just for fun imagine these clusters running across regions... 
 Out first attempt was to setup application with Netflix stack which was awesome for a while. We were running springboot 1.xx and created our spring template so all the applications have Hystrix, consul and ribbon for service discovery and prometheus for monitoring. Good right? just one teeny tiny problem, It started to take weeks in order to get the last mile certified for production while incorporating all these changes and getting them verified by teams. To add to this somebody came up and said, "you know what Spring released versoin 2.0 !". Now somebody has to upgrade all the services, bring them to 2.0 standards and create template for everything all over again. FYI default prometheus metrics are chagned in Spring 2.0, so good luck updating all the grafana dashboards.
 
+## 2. Service Discovery
+As i described before we are using Consul for service discovery, while we migration from DC to Cloud we wanted to have the same code base. Consul was a good fit for us (Wan discovery and near field detection) initially as we had plans to run both DC and Cloud which got changed in course of 1 year and 6 months. We decided to move everything to cloud.
+
+First challenge was super micro services:
+Consul based Service discovery was fine but we wanted our microservices to become more micros, by that I mean that these libraries should be taken out of codebase. We selected Istio based on our GCP roadmap and very soon reliased that Consul based service discovery will not work for us as Istio requires `Host headers` to identify a service.
+
+Second challenge Istio with different clusters
+> TODO
 
 
 
