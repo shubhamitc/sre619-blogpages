@@ -1,5 +1,5 @@
-# mysqldump -u<user> -p<password> -h <host> db > testdump.sql
-# cat  testdump.sql| sqlite3 mysqlite3.db                                                                                                     ✔ 1|0 ⎈ goldendev-eks-api-1-clientapi-z1/dnsmapper 22:52:45
+$ mysqldump -u<user> -p<password> -h <host> db > testdump.sql
+$ cat  testdump.sql| sqlite3 mysqlite3.db                                                                                                     ✔ 1|0 ⎈ goldendev-eks-api-1-clientapi-z1/dnsmapper 22:52:45
 Error: near line 25: near "AUTO_INCREMENT": syntax error
 Error: near line 38: near "LOCK": syntax error
 Error: near line 41: near "UNLOCK": syntax error
